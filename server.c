@@ -4,6 +4,7 @@
 #include <unistd.h>
 #include <arpa/inet.h>
 #include <netdb.h>
+#include <signal.h>
 #include "hash.c"
 
 #define BACKLOG 25
@@ -12,29 +13,11 @@
 #define NAME_SIZE 40
 #define PORT "3333"
 
+/*
 void send_message(hash_table_t *hashtable, int sender_fd, int receiver_fd, char *buf, size_t nread) {
-    char fd_s[MIN_BUF_SIZE], msg[MAX_BUF_SIZE], *chatline;
-
-    memset(&fd_s, 0, MIN_BUF_SIZE);
-    memset(&msg, 0, MAX_BUF_SIZE);
-
-    // Get the sender's nickname...
-    sprintf(fd_s, "%d", sender_fd);
-    node_t *hash_entry = lookup_hash_entry(hashtable, fd_s);
-
-//     printf("hash entry value %s\n", hash_entry->value);
-
-    // ...and add it to the sender's chat message.
-    chatline = strndup(hash_entry->value, strlen(hash_entry->value));
-
-//     msg = "<";
-    strncat(msg, chatline, strlen(chatline));
-    // Add the caret separating the nickname from the chat text.
-    strncat(msg, "> ", 2);
-    strncat(msg, buf, nread + strlen(msg));
-
-    send(receiver_fd, msg, strlen(msg), 0);
+    // TODO
 }
+*/
 
 int main(int argc, char **argv) {
     int sock, maxfd, newfd, i;
@@ -97,7 +80,7 @@ int main(int argc, char **argv) {
         exit(3);
     }
 
-    printf("chat server started on port %s...\n", PORT);
+    fprintf(stderr, "chat server started on port %s...\n", PORT);
 
     maxfd = sock;
     FD_ZERO(&master);
@@ -131,13 +114,13 @@ int main(int argc, char **argv) {
                     send(newfd, greeting, strlen(greeting), 0);
                     nread = recv(newfd, name, NAME_SIZE, 0);
 
-                    printf("Received a new connection from %s", name);
-
                     // The hashtable key for the user will be the stringified file descriptor.
                     sprintf(fd_s, "%d", newfd);
 
                     // Remove the newline (remember it's null-terminated).
                     name[strlen(name) - 2] = '\0';
+
+                    fprintf(stderr, "Received a new connection from %s (fd %d)\n", name, newfd);
 
                     add_hash_entry(hashtable, fd_s, name);
 
@@ -153,21 +136,29 @@ int main(int argc, char **argv) {
                         for (j = 0; j <= maxfd; ++j) {
                             // Don't send to either the server or the socket that wrote the message that was just received.
                             if (j > 2 && j != sock && j != i) {
-                                // Get the sender's nickname...
+                                // Get the sender's nickname.
                                 sprintf(fd_s, "%d", i);
                                 node_t *hash_entry = lookup_hash_entry(hashtable, fd_s);
 
-                                // ...and add it to the sender's chat message.
+                                // Handle Ctl-C.
+                                if (buf[0] == -1) {
+                                    fprintf(stderr, "%s has left the chat (fd %d)\n", hash_entry->value, i);
 
-                                char msg[MAX_BUF_SIZE];
+                                    FD_CLR(i, &master);
+                                    close(i);
+                                } else {
+                                    // Add the sender's nickname to the sender's chat message.
+                                    char msg[MAX_BUF_SIZE];
 
-                                memset(&msg, 0, MAX_BUF_SIZE);
-                                if ((snprintf(msg, 4 + strlen(hash_entry->value) + nread, "%s%s%s %s", "<", hash_entry->value, ">", buf)) == -1) {
-                                    perror("snprintf");
-                                    exit(7);
+                                    memset(&msg, 0, MAX_BUF_SIZE);
+
+                                    if ((snprintf(msg, 4 + strlen(hash_entry->value) + nread, "%s%s%s %s", "<", hash_entry->value, ">", buf)) == -1) {
+                                        perror("snprintf");
+                                        exit(7);
+                                    }
+
+                                    send(j, msg, nread + strlen(msg), 0);
                                 }
-
-                                send(j, msg, nread + strlen(msg), 0);
 //                                 send_message(hashtable, i, j, buf, nread);
                             }
                         }
