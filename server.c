@@ -4,7 +4,6 @@
 #include <unistd.h>
 #include <arpa/inet.h>
 #include <netdb.h>
-#include <signal.h>
 #include "hash.c"
 
 #define BACKLOG 25
@@ -110,6 +109,7 @@ int main(int argc, char **argv) {
 
                     char greeting[] = "Hello, what is your name? ";
                     char msg[] = "Hi ";
+                    char *newline;
 
                     send(newfd, greeting, strlen(greeting), 0);
                     nread = recv(newfd, name, NAME_SIZE, 0);
@@ -117,8 +117,9 @@ int main(int argc, char **argv) {
                     // The hashtable key for the user will be the stringified file descriptor.
                     sprintf(fd_s, "%d", newfd);
 
-                    // Remove the newline (remember it's null-terminated).
-                    name[strlen(name) - 2] = '\0';
+                    // Remove the newline.
+                    newline = strchr(name, 13);
+                    *newline = 0;
 
                     fprintf(stderr, "Received a new connection from %s (fd %d)\n", name, newfd);
 
