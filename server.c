@@ -22,13 +22,13 @@ void send_message(hash_table_t *hashtable, int sender_fd, int receiver_fd, char 
  * simple_chat [PORT]
  */
 int main(int argc, char **argv) {
-    int sock, maxfd, newfd, i;
+    int sock, maxfd, newfd, i, k;
     size_t r, j, nread, yes = 1, table_size = BACKLOG;
 
     struct addrinfo hints, *res, *p;
     struct sockaddr_storage client;
 
-    char buf[MAX_BUF_SIZE], name[NAME_SIZE], fd_s[8];
+    char buf[MAX_BUF_SIZE], msg[MAX_BUF_SIZE], name[NAME_SIZE], fd_s[8];
 
     fd_set master, readfds;
     socklen_t sin_size;
@@ -41,6 +41,7 @@ int main(int argc, char **argv) {
 
     memset(&fd_s, 0, strlen(fd_s));
     memset(&buf, 0, MAX_BUF_SIZE);
+    memset(&msg, 0, MAX_BUF_SIZE);
     memset(&hints, 0, sizeof(hints));
 
     hints.ai_family = AF_INET;
@@ -143,25 +144,29 @@ int main(int argc, char **argv) {
                     } else {
                         for (j = 0; j <= maxfd; ++j) {
                             // Don't send to either the server or the socket that wrote the message that was just received.
-                            if (j != sock && j != i) {
+                            if (j > (sock + 1) && j != sock && j != i) {
                                 // Get the sender's nickname.
                                 sprintf(fd_s, "%d", i);
                                 node_t *hash_entry;
 
-                                // TODO: What to do if no hash bucket entry?
                                 if ((hash_entry = lookup_hash_entry(hashtable, fd_s)) != NULL) {
                                     // Handle Ctl-C.
                                     if (buf[0] == -1) {
-                                        fprintf(stderr, "%s has left the chat (fd %d)\n", hash_entry->value, i);
+                                        if ((snprintf(msg, strlen(hash_entry->value) + 20, "%s%s", hash_entry->value, " has left the chat\n")) == -1) {
+                                            perror("snprintf");
+                                            exit(6);
+                                        }
+
+                                        fprintf(stderr, "(fd %d) %s", i, msg);
 
                                         FD_CLR(i, &master);
                                         close(i);
+
+                                        // Alert the other users that the user has left the chat.
+                                        for (k = sock + 1; k <= maxfd; ++k)
+                                            send(k, msg, strlen(msg), 0);
                                     } else {
                                         // Add the sender's nickname to the sender's chat message.
-                                        char msg[MAX_BUF_SIZE];
-
-                                        memset(&msg, 0, MAX_BUF_SIZE);
-
                                         if ((snprintf(msg, 4 + strlen(hash_entry->value) + nread, "%s%s%s %s", "<", hash_entry->value, ">", buf)) == -1) {
                                             perror("snprintf");
                                             exit(7);
