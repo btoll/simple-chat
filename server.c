@@ -18,6 +18,9 @@ void send_message(hash_table_t *hashtable, int sender_fd, int receiver_fd, char 
 }
 */
 
+/**
+ * simple_chat [PORT]
+ */
 int main(int argc, char **argv) {
     int sock, maxfd, newfd, i;
     size_t r, j, nread, yes = 1, table_size = BACKLOG;
@@ -30,6 +33,10 @@ int main(int argc, char **argv) {
     fd_set master, readfds;
     socklen_t sin_size;
 
+    char *port = argc > 1 ?
+        argv[1] :
+        PORT;
+
     hash_table_t *hashtable = create_hashtable(table_size);
 
     memset(&fd_s, 0, strlen(fd_s));
@@ -40,7 +47,7 @@ int main(int argc, char **argv) {
     hints.ai_socktype = SOCK_STREAM;
     hints.ai_flags = AI_PASSIVE;
 
-    if ((r = getaddrinfo(NULL, PORT, &hints, &res)) == -1) {
+    if ((r = getaddrinfo(NULL, port, &hints, &res)) == -1) {
         perror(gai_strerror(r));
         exit(1);
     }
@@ -79,7 +86,7 @@ int main(int argc, char **argv) {
         exit(3);
     }
 
-    fprintf(stderr, "chat server started on port %s...\n", PORT);
+    fprintf(stderr, "chat server started on port %s...\n", port);
 
     maxfd = sock;
     FD_ZERO(&master);
