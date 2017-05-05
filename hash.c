@@ -85,30 +85,12 @@ node_t *lookup_hash_entry(hash_table_t *hashtable, char *key) {
 
     node_t *bucket = hashtable->table[hashval];
 
-    if (bucket == NULL) {
-        fprintf(stderr, "No hash bucket\n");
-        exit(2);
-    }
+    if (bucket == NULL)
+        return NULL;
 
     while (bucket && strncmp(bucket->key, key, strlen(key)) != 0)
         bucket = bucket->next;
 
     return bucket;
 }
-
-// int main(int argc, char **argv) {
-//     char buf[10];
-//     int i = 42;
-
-//     memset(&buf, 0, strlen(buf));
-//     sprintf(buf, "%d", 5);
-
-//     hash_table_t *my_table = create_hashtable(20);
-//     node_t *new_node = add(my_table, buf, "foo");
-//     node_t *new_node2 = add(my_table, buf, "bar");
-//     node_t *foo = lookup(my_table, buf);
-//     printf("%s\n", foo->next->key);
-
-//     return 0;
-// }
 

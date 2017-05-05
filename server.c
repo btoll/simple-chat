@@ -136,31 +136,34 @@ int main(int argc, char **argv) {
                     } else {
                         for (j = 0; j <= maxfd; ++j) {
                             // Don't send to either the server or the socket that wrote the message that was just received.
-                            if (j > 2 && j != sock && j != i) {
+                            if (j != sock && j != i) {
                                 // Get the sender's nickname.
                                 sprintf(fd_s, "%d", i);
-                                node_t *hash_entry = lookup_hash_entry(hashtable, fd_s);
+                                node_t *hash_entry;
 
-                                // Handle Ctl-C.
-                                if (buf[0] == -1) {
-                                    fprintf(stderr, "%s has left the chat (fd %d)\n", hash_entry->value, i);
+                                // TODO: What to do if no hash bucket entry?
+                                if ((hash_entry = lookup_hash_entry(hashtable, fd_s)) != NULL) {
+                                    // Handle Ctl-C.
+                                    if (buf[0] == -1) {
+                                        fprintf(stderr, "%s has left the chat (fd %d)\n", hash_entry->value, i);
 
-                                    FD_CLR(i, &master);
-                                    close(i);
-                                } else {
-                                    // Add the sender's nickname to the sender's chat message.
-                                    char msg[MAX_BUF_SIZE];
+                                        FD_CLR(i, &master);
+                                        close(i);
+                                    } else {
+                                        // Add the sender's nickname to the sender's chat message.
+                                        char msg[MAX_BUF_SIZE];
 
-                                    memset(&msg, 0, MAX_BUF_SIZE);
+                                        memset(&msg, 0, MAX_BUF_SIZE);
 
-                                    if ((snprintf(msg, 4 + strlen(hash_entry->value) + nread, "%s%s%s %s", "<", hash_entry->value, ">", buf)) == -1) {
-                                        perror("snprintf");
-                                        exit(7);
+                                        if ((snprintf(msg, 4 + strlen(hash_entry->value) + nread, "%s%s%s %s", "<", hash_entry->value, ">", buf)) == -1) {
+                                            perror("snprintf");
+                                            exit(7);
+                                        }
+
+                                        send(j, msg, nread + strlen(msg), 0);
                                     }
-
-                                    send(j, msg, nread + strlen(msg), 0);
-                                }
 //                                 send_message(hashtable, i, j, buf, nread);
+                                }
                             }
                         }
                     }
