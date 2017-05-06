@@ -22,8 +22,8 @@ void send_message(hash_table_t *hashtable, int sender_fd, int receiver_fd, char 
  * simple_chat [PORT]
  */
 int main(int argc, char **argv) {
-    int sock, maxfd, newfd, i, k;
-    size_t r, j, nread, yes = 1, table_size = BACKLOG;
+    int sock, maxfd, newfd, nread, i, j, k, r;
+    size_t yes = 1, table_size = BACKLOG;
 
     struct addrinfo hints, *res, *p;
     struct sockaddr_storage client;
@@ -138,7 +138,7 @@ int main(int argc, char **argv) {
 
                     send(newfd, msg, strlen(msg), 0);
                 } else {
-                    if ((nread = recv(i, buf, MAX_BUF_SIZE, 0)) < 0) {
+                    if ((nread = recv(i, buf, MAX_BUF_SIZE, 0)) == -1) {
                         perror("recv");
                         exit(6);
                     } else {
