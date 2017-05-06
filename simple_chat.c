@@ -184,6 +184,8 @@ int main(int argc, char **argv) {
         }
     }
 
+    free_hashtable(hashtable);
+
     return 0;
 }
 

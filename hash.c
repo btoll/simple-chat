@@ -20,7 +20,7 @@ node_t *add_hash_entry(hash_table_t *hashtable, char* key, char *value) {
         exit(2);
     }
 
-    new_node->key = key;
+    new_node->key = strdup(key);
     new_node->value = strdup(value);
     new_node->next = hashtable->table[hashval];
 
@@ -58,6 +58,28 @@ hash_table_t *create_hashtable(size_t size) {
     new_table->size = size;
 
     return new_table;
+}
+
+void free_hashtable(hash_table_t *hashtable) {
+    int size = hashtable->size, i;
+    node_t *node, *tmp;
+
+    for (i = 0; i < size; ++i) {
+        // Remove the nodes in each linked list.
+        node = hashtable->table[i];
+
+        while (node) {
+            node->key = NULL;
+            node->value = NULL;
+
+            tmp = node;
+            node = node->next;
+            free(tmp);
+        }
+    }
+
+    free(hashtable->table);
+    free(hashtable);
 }
 
 // TODO: Need a (much) better hashing algo! This is just to keep moving along.

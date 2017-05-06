@@ -11,6 +11,7 @@ typedef struct hash_table_s {
 
 node_t *add_hash_entry(hash_table_t *hashtable, char* key, char *value);
 hash_table_t *create_hashtable(size_t size);
+void free_hashtable(hash_table_t *hashtable);
 size_t hash(hash_table_t *hashtable, char *str);
 node_t *lookup_hash_entry(hash_table_t *hashtable, char *value);
 
