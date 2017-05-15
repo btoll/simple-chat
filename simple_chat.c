@@ -4,19 +4,8 @@
 #include <unistd.h>
 #include <arpa/inet.h>
 #include <netdb.h>
-#include "hash.c"
-
-#define BACKLOG 25
-#define MAX_BUF_SIZE 4096
-#define MIN_BUF_SIZE 4
-#define NAME_SIZE 40
-#define PORT "3333"
-
-/*
-void send_message(hash_table_t *hashtable, int sender_fd, int receiver_fd, char *buf, size_t nread) {
-    // TODO
-}
-*/
+#include "hashtable.c"
+#include "simple_chat.h"
 
 /**
  * simple_chat [PORT]
@@ -41,7 +30,6 @@ int main(int argc, char **argv) {
 
     memset(&fd_s, 0, strlen(fd_s));
     memset(&buf, 0, MAX_BUF_SIZE);
-    memset(&msg, 0, MAX_BUF_SIZE);
     memset(&hints, 0, sizeof(hints));
 
     hints.ai_family = AF_INET;
@@ -143,8 +131,10 @@ int main(int argc, char **argv) {
                         exit(6);
                     } else {
                         for (j = 0; j <= maxfd; ++j) {
+//                             printf("i %d, j %d, maxfd %d, sock %d\n", i, j, maxfd, sock);
                             // Don't send to either the server or the socket that wrote the message that was just received.
-                            if (j > (sock + 1) && j != sock && j != i) {
+//                             if (j > (sock + 1) && j != sock && j != i) {
+                            if (j > sock && j != sock && j != i) {
                                 // Get the sender's nickname.
                                 sprintf(fd_s, "%d", i);
                                 node_t *hash_entry;
@@ -167,6 +157,8 @@ int main(int argc, char **argv) {
                                             send(k, msg, strlen(msg), 0);
                                     } else {
                                         // Add the sender's nickname to the sender's chat message.
+                                        memset(&msg, 0, MAX_BUF_SIZE);
+
                                         if ((snprintf(msg, 4 + strlen(hash_entry->value) + nread, "%s%s%s %s", "<", hash_entry->value, ">", buf)) == -1) {
                                             perror("snprintf");
                                             exit(7);
@@ -174,7 +166,6 @@ int main(int argc, char **argv) {
 
                                         send(j, msg, nread + strlen(msg), 0);
                                     }
-//                                 send_message(hashtable, i, j, buf, nread);
                                 }
                             }
                         }

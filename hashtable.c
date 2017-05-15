@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include "hash.h"
+#include "hashtable.h"
 
 /**
  * Add the new entry to the head of the linked list of the hash bucket.
@@ -15,7 +15,7 @@ node_t *add_hash_entry(hash_table_t *hashtable, char* key, char *value) {
     size_t hashval = hash(hashtable, key);
     node_t *new_node;
 
-    if ((new_node = malloc(sizeof(node_t))) == NULL) {
+    if ((new_node = (node_t *) malloc(sizeof(node_t))) == NULL) {
         fprintf(stderr, "Could not allocate memory for new node\n");
         exit(2);
     }
@@ -42,12 +42,12 @@ hash_table_t *create_hashtable(size_t size) {
     size_t i;
     hash_table_t *new_table;
 
-    if ((new_table = malloc(sizeof(hash_table_t))) == NULL) {
+    if ((new_table = (hash_table_t *) malloc(sizeof(hash_table_t))) == NULL) {
         fprintf(stderr, "Could not allocate memory for hash table\n");
         exit(2);
     }
 
-    if ((new_table->table = malloc(sizeof(node_t) * size)) == NULL) {
+    if ((new_table->table = (node_t **) malloc(sizeof(node_t) * size)) == NULL) {
         fprintf(stderr, "Could not allocate memory for hash table elements\n");
         exit(3);
     }

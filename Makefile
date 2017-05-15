@@ -5,7 +5,7 @@ WARN    = -W -Wall
 
 all: simple_chat
 
-simple_chat: hash.o hash.h
+simple_chat:
 	$(CC) $(WARN) -o simple_chat simple_chat.c
 
 clean:
