@@ -7,7 +7,10 @@
 #include "hashtable.c"
 #include "simple_chat.h"
 
-void start(char *port) {
+/**
+ * simple_chat [PORT]
+ */
+int main(int argc, char **argv) {
     int sock, maxfd, newfd, nread, i, j, k, r;
     size_t yes = 1, table_size = BACKLOG;
 
@@ -18,6 +21,10 @@ void start(char *port) {
 
     fd_set master, readfds;
     socklen_t sin_size;
+
+    char *port = argc > 1 ?
+        argv[1] :
+        PORT;
 
     hash_table_t *hashtable = create_hashtable(table_size);
 
@@ -169,18 +176,6 @@ void start(char *port) {
     }
 
     free_hashtable(hashtable);
-
-}
-
-/**
- * simple_chat [PORT]
- */
-int main(int argc, char **argv) {
-    char *port = argc > 1 ?
-        argv[1] :
-        PORT;
-
-    start(port);
 
     return 0;
 }
