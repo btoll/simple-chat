@@ -113,16 +113,24 @@ int main(int argc, char **argv) {
                     // The hashtable key for the user will be the stringified file descriptor.
                     sprintf(fd_s, "%d", newfd);
 
-                    // Remove the newline.
-                    newline = strchr(name, 13);
-                    *newline = 0;
+                    // Remove the newline (telnet) or newline & carriage return (netcat).
+                    if (!(newline = strstr(name, "\r\n"))) {
+                        newline = strstr(name, "\n");
+                    }
 
-                    fprintf(stderr, "Received a new connection from %s (fd %d)\n", name, newfd);
+                    // Copy the original string from up to the newline using pointer arithmetic.
+                    char buf[NAME_SIZE];
+                    strncpy(buf, name, newline - name);
+                    buf[newline-name] = '\0';
 
-                    add_hash_entry(hashtable, fd_s, name);
+                    fprintf(stderr, "Received a new connection from %s (fd %d)\n", buf, newfd);
 
-                    strncat(name, "\n", 1);
-                    strncat(msg, name, nread);
+                    add_hash_entry(hashtable, fd_s, buf);
+
+                    // Add a return character so the welcome message to the user isn't on the same
+                    // line as the first chat message.
+                    strncat(buf, "\n", 1);
+                    strncat(msg, buf, nread);
 
                     send(newfd, msg, strlen(msg), 0);
                 } else {
@@ -133,7 +141,6 @@ int main(int argc, char **argv) {
                         for (j = 0; j <= maxfd; ++j) {
 //                             printf("i %d, j %d, maxfd %d, sock %d\n", i, j, maxfd, sock);
                             // Don't send to either the server or the socket that wrote the message that was just received.
-//                             if (j > (sock + 1) && j != sock && j != i) {
                             if (j > sock && j != sock && j != i) {
                                 // Get the sender's nickname.
                                 sprintf(fd_s, "%d", i);
