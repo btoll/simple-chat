@@ -11,13 +11,14 @@
  * simple_chat [PORT]
  */
 int main(int argc, char **argv) {
-    int sock, maxfd, newfd, nread, i, j, k, r;
+//    int sock, maxfd, newfd, nread, i, j, k, r;
+    int sock, maxfd, newfd, i, j, k, r;
     size_t yes = 1, table_size = BACKLOG;
 
     struct addrinfo hints, *res, *p;
     struct sockaddr_storage client;
 
-    char buf[MAX_BUF_SIZE], msg[MAX_BUF_SIZE], name[NAME_SIZE], fd_s[8];
+    char fd_s[8];
 
     fd_set master, readfds;
     socklen_t sin_size;
@@ -29,7 +30,6 @@ int main(int argc, char **argv) {
     hash_table_t *hashtable = create_hashtable(table_size);
 
     memset(&fd_s, 0, strlen(fd_s));
-    memset(&buf, 0, MAX_BUF_SIZE);
     memset(&hints, 0, sizeof(hints));
 
     hints.ai_family = AF_INET;
@@ -94,6 +94,10 @@ int main(int argc, char **argv) {
 
         for (i = 0; i <= maxfd; ++i) {
             if (FD_ISSET(i, &readfds)) {
+                int nread;
+                char buf[MAX_BUF_SIZE];
+                memset(&buf, 0, MAX_BUF_SIZE);
+
                 if (i == sock) {
                     sin_size = sizeof(client);
 
@@ -103,10 +107,14 @@ int main(int argc, char **argv) {
                     }
 
                     FD_SET(newfd, &master);
-                    maxfd = newfd;
 
+                    if (newfd > maxfd)
+                        maxfd = newfd;
+
+                    char name[NAME_SIZE];
+                    memset(&name, 0, NAME_SIZE);
                     char greeting[] = "Hello, what is your name? ";
-                    char msg[] = "Hi ";
+                    char initialmsg[] = "Hi ";
                     char *newline;
 
                     send(newfd, greeting, strlen(greeting), 0);
@@ -115,13 +123,12 @@ int main(int argc, char **argv) {
                     // The hashtable key for the user will be the stringified file descriptor.
                     sprintf(fd_s, "%d", newfd);
 
-                    // Remove the newline (telnet) or newline & carriage return (netcat).
+                    // Locate the substring of the newline (telnet) or newline & carriage return (netcat).
                     if (!(newline = strstr(name, "\r\n"))) {
                         newline = strstr(name, "\n");
                     }
 
                     // Copy the original string from up to the newline using pointer arithmetic.
-                    char buf[NAME_SIZE];
                     strncpy(buf, name, newline - name);
                     buf[newline-name] = '\0';
 
@@ -132,16 +139,15 @@ int main(int argc, char **argv) {
                     // Add a return character so the welcome message to the user isn't on the same
                     // line as the first chat message.
                     strncat(buf, "\n", 1);
-                    strncat(msg, buf, nread);
+                    strncat(initialmsg, buf, nread);
 
-                    send(newfd, msg, strlen(msg), 0);
+                    send(newfd, initialmsg, strlen(initialmsg), 0);
                 } else {
                     if ((nread = recv(i, buf, MAX_BUF_SIZE, 0)) == -1) {
                         perror("recv");
                         exit(6);
                     } else {
                         for (j = 0; j <= maxfd; ++j) {
-//                             printf("i %d, j %d, maxfd %d, sock %d\n", i, j, maxfd, sock);
                             // Don't send to either the server or the socket that wrote the message that was just received.
                             if (j > sock && j != sock && j != i) {
                                 // Get the sender's nickname.
@@ -149,8 +155,11 @@ int main(int argc, char **argv) {
                                 node_t *hash_entry;
 
                                 if ((hash_entry = lookup_hash_entry(hashtable, fd_s)) != NULL) {
-                                    // Handle Ctl-C.
-                                    if (buf[0] == -1) {
+                                    char msg[MAX_BUF_SIZE];
+                                    memset(&msg, 0, MAX_BUF_SIZE);
+
+                                    // Client closed the connection || Client pressed Ctl-C.
+                                    if (nread == 0 || buf[0] == -1) {
                                         if ((snprintf(msg, strlen(hash_entry->value) + 20, "%s%s", hash_entry->value, " has left the chat\n")) == -1) {
                                             perror("snprintf");
                                             exit(6);
