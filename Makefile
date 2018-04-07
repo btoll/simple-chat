@@ -1,13 +1,15 @@
-CC      = gcc
-WARN    = -W -Wall
+CC      	= gcc
+WARN    	= -W -Wall
+SIMPLE_CHAT	= simple_chat.c
+TARGET		= simple_chat
 
-.PHONY: all simple_chat clean
+.PHONY: build clean
 
-all: simple_chat
+$(TARGET): $(SIMPLE_CHAT)
+	$(CC) $(WARN) -o $(TARGET) $(SIMPLE_CHAT)
 
-simple_chat:
-	$(CC) $(WARN) -o simple_chat simple_chat.c
+build: $(TARGET)
 
 clean:
-	rm simple_chat *.o
+	rm -f $(TARGET) *.o
 

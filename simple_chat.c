@@ -34,7 +34,7 @@ int main(int argc, char **argv) {
 
     hints.ai_family = AF_INET;
     hints.ai_socktype = SOCK_STREAM;
-    hints.ai_flags = AI_PASSIVE;
+    hints.ai_flags = AI_PASSIVE;        // Fill in my IP for me.
 
     if ((r = getaddrinfo(NULL, port, &hints, &res)) == -1) {
         perror(gai_strerror(r));
@@ -47,7 +47,9 @@ int main(int argc, char **argv) {
             continue;
         }
 
-        // Allow the socket to be reused.
+        // Sometimes, the bind call fails with "Address already in use."  A little bit of a socket that was
+        // connected is still hanging around in the kernel, and it's hogging the port. You can either wait
+        // for it to clear (a minute or so), or add code to your program allowing it to reuse the port,
         if (setsockopt(sock, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(int)) == -1) {
             close(sock);
             perror("setsockopt");
