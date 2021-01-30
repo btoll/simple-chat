@@ -1,0 +1,11 @@
+# The following examples do the same thing.
+
+ncat -l localhost 10003 < <(echo -e "HTTP/1.0 200 OK\n\n<h1>hello world</h1>")
+echo -e "HTTP/1.0 200 OK\n\n<h1>hello world</h1>" | ncat -l localhost 10003
+cat | ncat -l localhost 10003
+    ...
+
+
+# Connect using TLS.
+ncat -C --ssl theowlsnestfarm.com 443 
+
