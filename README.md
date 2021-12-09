@@ -1,16 +1,16 @@
 # simple_chat
 
-Big thanks to [Beej's Guide to Networking Programming] for help and inspiration.
+Big thanks to [Beej's Guide to Networking Programming] for help and inspiration.  Buy his book!
 
 ## Installation
 
 `make build`
 
-Only tested on Linux.  It uses the select API, so it *should* be portable :)
+Only tested on Linux.  It uses the `select` API, so it *should* be portable :)
 
 ## Examples
 
-Start the server and connect via telnet. By default it binds to port 3333, but this can be changed, i.e.:
+Start the server and connect via `telnet`. By default it binds to port 3333, but this can be changed, i.e.:
 
 ```
 ./simple_chat 1992
