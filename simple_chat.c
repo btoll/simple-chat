@@ -94,104 +94,106 @@ int main(int argc, char **argv) {
             exit(4);
         }
 
-        for (i = 0; i <= maxfd; ++i) {
-            if (FD_ISSET(i, &readfds)) {
-                int nread;
-                char buf[MAX_BUF_SIZE];
-                memset(&buf, 0, MAX_BUF_SIZE);
+        int nread;
+        char buf[MAX_BUF_SIZE];
+        memset(&buf, 0, MAX_BUF_SIZE);
 
-                // If the master socket file descriptor is set, then a new request has been
-                // made.  Recall that the kernel would redirect new requests to the master
-                // socket file descriptor.
-                if (i == sock) {
-                    sin_size = sizeof(client);
+        // If the master socket file descriptor is set, then a new request has been
+        // made.  Recall that the kernel would redirect new requests to the master
+        // socket file descriptor.
+        if FD_ISSET(sock, &readfds) {
+            sin_size = sizeof(client);
 
-                    if ((newfd = accept(i, (struct sockaddr *) &client, &sin_size)) == -1) {
-                        perror("accept");
-                        exit(5);
-                    }
+            if ((newfd = accept(sock, (struct sockaddr *) &client, &sin_size)) == -1) {
+                perror("accept");
+                exit(5);
+            }
 
-                    // Add new client communication socket file descriptor to the set.
-                    FD_SET(newfd, &master);
+            // Add new client communication socket file descriptor to the set.
+            FD_SET(newfd, &master);
 
-                    if (newfd > maxfd)
-                        maxfd = newfd;
+            if (newfd > maxfd)
+                maxfd = newfd;
 
-                    char name[NAME_SIZE];
-                    memset(&name, 0, NAME_SIZE);
-                    char greeting[] = "Hello, what is your name? ";
-                    char initialmsg[] = "Hi ";
-                    char *newline;
+            char name[NAME_SIZE];
+            memset(&name, 0, NAME_SIZE);
+            char greeting[] = "Hello, what is your name? ";
+            char initialmsg[] = "Hi ";
+            char *newline;
 
-                    send(newfd, greeting, strlen(greeting), 0);
-                    nread = recv(newfd, name, NAME_SIZE, 0);
+            send(newfd, greeting, strlen(greeting), 0);
+            nread = recv(newfd, name, NAME_SIZE, 0);
 
-                    // The hashtable key for the user will be the stringified file descriptor.
-                    sprintf(fd_s, "%d", newfd);
+            // The hashtable key for the user will be the stringified file descriptor.
+            sprintf(fd_s, "%d", newfd);
 
-                    // Locate the substring of the newline (telnet) or newline & carriage return (netcat).
-                    if (!(newline = strstr(name, "\r\n"))) {
-                        newline = strstr(name, "\n");
-                    }
+            // Locate the substring of the newline (telnet) or newline & carriage return (netcat).
+            if (!(newline = strstr(name, "\r\n"))) {
+                newline = strstr(name, "\n");
+            }
 
-                    // Copy the original string from up to the newline using pointer arithmetic.
-                    strncpy(buf, name, newline - name);
-                    buf[newline-name] = '\0';
+            // Copy the original string from up to the newline using pointer arithmetic.
+            strncpy(buf, name, newline - name);
+            buf[newline-name] = '\0';
 
-                    fprintf(stderr, "Received a new connection from %s (fd %d)\n", buf, newfd);
+            fprintf(stderr, "Received a new connection from %s (fd %d)\n", buf, newfd);
 
-                    add_hash_entry(hashtable, fd_s, buf);
+            add_hash_entry(hashtable, fd_s, buf);
 
-                    // Add a return character so the welcome message to the user isn't on the same
-                    // line as the first chat message.
-                    strncat(buf, "\n", 1);
-                    strncat(initialmsg, buf, nread);
+            // Add a return character so the welcome message to the user isn't on the same
+            // line as the first chat message.
+            strncat(buf, "\n", 1);
+            strncat(initialmsg, buf, nread);
 
-                    send(newfd, initialmsg, strlen(initialmsg), 0);
-                }
-                // The communication file descriptor was activated.
-                else {
+            send(newfd, initialmsg, strlen(initialmsg), 0);
+        } else // The communication file descriptor was activated.
+        {
+            for (i = 0; i <= maxfd; ++i) {
+                if FD_ISSET(i, &readfds) {
                     if ((nread = recv(i, buf, MAX_BUF_SIZE, 0)) == -1) {
                         perror("recv");
                         exit(6);
-                    } else {
-                        for (j = 0; j <= maxfd; ++j) {
-                            // Don't send to either the server or the socket that wrote the message that was just received.
-                            if (j > sock && j != sock && j != i) {
-                                // Get the sender's nickname.
-                                sprintf(fd_s, "%d", i);
-                                node_t *hash_entry;
+                    }
 
-                                if ((hash_entry = lookup_hash_entry(hashtable, fd_s)) != NULL) {
-                                    char msg[MAX_BUF_SIZE];
+                    // Don't send to either the server or the to fd that wrote the message.
+                    for (j = 0; j <= maxfd; ++j) {
+                        if (j > sock && j != sock && j != i) {
+                            // Get the sender's nickname.
+                            sprintf(fd_s, "%d", i);
+                            node_t *hash_entry;
+
+                            if ((hash_entry = lookup_hash_entry(hashtable, fd_s)) != NULL) {
+                                char msg[MAX_BUF_SIZE];
+                                memset(&msg, 0, MAX_BUF_SIZE);
+
+                                // Client closed the connection || Client pressed Ctl-C.
+                                if (nread == 0 || buf[0] == -1) {
+                                    if ((snprintf(msg, strlen(hash_entry->value) + 20, "%s%s", hash_entry->value, " has left the chat\n")) == -1) {
+                                        perror("snprintf");
+                                        exit(6);
+                                    }
+
+                                    fprintf(stderr, "(fd %d) %s", i, msg);
+
+                                    FD_CLR(i, &master);
+                                    close(i);
+
+                                    // Alert the other users that the user has left the chat.
+                                    for (k = sock + 1; k <= maxfd; ++k)
+                                        send(k, msg, strlen(msg), 0);
+
+                                    // Break here to avoid duplicate "X has left the chat" messages.
+                                    break;
+                                } else {
+                                    // Add the sender's nickname to the sender's chat message.
                                     memset(&msg, 0, MAX_BUF_SIZE);
 
-                                    // Client closed the connection || Client pressed Ctl-C.
-                                    if (nread == 0 || buf[0] == -1) {
-                                        if ((snprintf(msg, strlen(hash_entry->value) + 20, "%s%s", hash_entry->value, " has left the chat\n")) == -1) {
-                                            perror("snprintf");
-                                            exit(6);
-                                        }
-
-                                        fprintf(stderr, "(fd %d) %s", i, msg);
-
-                                        FD_CLR(i, &master);
-                                        close(i);
-
-                                        // Alert the other users that the user has left the chat.
-                                        for (k = sock + 1; k <= maxfd; ++k)
-                                            send(k, msg, strlen(msg), 0);
-                                    } else {
-                                        // Add the sender's nickname to the sender's chat message.
-                                        memset(&msg, 0, MAX_BUF_SIZE);
-
-                                        if ((snprintf(msg, 4 + strlen(hash_entry->value) + nread, "%s%s%s %s", "<", hash_entry->value, ">", buf)) == -1) {
-                                            perror("snprintf");
-                                            exit(7);
-                                        }
-
-                                        send(j, msg, nread + strlen(msg), 0);
+                                    if ((snprintf(msg, 4 + strlen(hash_entry->value) + nread, "%s%s%s %s", "<", hash_entry->value, ">", buf)) == -1) {
+                                        perror("snprintf");
+                                        exit(7);
                                     }
+
+                                    send(j, msg, nread + strlen(msg), 0);
                                 }
                             }
                         }
@@ -202,7 +204,6 @@ int main(int argc, char **argv) {
     }
 
     free_hashtable(hashtable);
-
     return 0;
 }
 
