@@ -118,7 +118,6 @@ int main(int argc, char **argv) {
             char name[NAME_SIZE];
             memset(&name, 0, NAME_SIZE);
             char greeting[] = "Hello, what is your name? ";
-            char initialmsg[] = "Hi ";
             char *newline;
 
             send(newfd, greeting, strlen(greeting), 0);
@@ -142,9 +141,8 @@ int main(int argc, char **argv) {
 
             // Add a return character so the welcome message to the user isn't on the same
             // line as the first chat message.
-            strncat(buf, "\n", 1);
-            strncat(initialmsg, buf, nread);
-
+            char initialmsg[40];
+            sprintf(initialmsg, "Hi %s, welcome to the chat server!\n", buf);
             send(newfd, initialmsg, strlen(initialmsg), 0);
         } else // The communication file descriptor was activated.
         {
