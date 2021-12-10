@@ -49,7 +49,7 @@ int main(int argc, char **argv) {
 
         // Sometimes, the bind call fails with "Address already in use."  A little bit of a socket that was
         // connected is still hanging around in the kernel, and it's hogging the port. You can either wait
-        // for it to clear (a minute or so), or add code to your program allowing it to reuse the port,
+        // for it to clear (a minute or so) or add code to your program allowing it to reuse the port.
         if (setsockopt(sock, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(int)) == -1) {
             close(sock);
             perror("setsockopt");
@@ -77,7 +77,8 @@ int main(int argc, char **argv) {
         exit(3);
     }
 
-    fprintf(stderr, "chat server started on port %s...\n", port);
+    fprintf(stderr, "Simple chat server started on port %s...\n", port);
+    fprintf(stderr, "Clients can connect using telnet, i.e.,\t`telnet 127.0.0.1 %s`\n", port);
 
     maxfd = sock;
     FD_ZERO(&master);
@@ -87,6 +88,7 @@ int main(int argc, char **argv) {
     for (;;) {
         readfds = master;
 
+        // This blocks until a new client request or new data request is made.
         if ((r = select(maxfd + 1, &readfds, NULL, NULL, NULL)) == -1) {
             perror("select");
             exit(4);
@@ -98,6 +100,9 @@ int main(int argc, char **argv) {
                 char buf[MAX_BUF_SIZE];
                 memset(&buf, 0, MAX_BUF_SIZE);
 
+                // If the master socket file descriptor is set, then a new request has been
+                // made.  Recall that the kernel would redirect new requests to the master
+                // socket file descriptor.
                 if (i == sock) {
                     sin_size = sizeof(client);
 
@@ -106,6 +111,7 @@ int main(int argc, char **argv) {
                         exit(5);
                     }
 
+                    // Add new client communication socket file descriptor to the set.
                     FD_SET(newfd, &master);
 
                     if (newfd > maxfd)
@@ -142,7 +148,9 @@ int main(int argc, char **argv) {
                     strncat(initialmsg, buf, nread);
 
                     send(newfd, initialmsg, strlen(initialmsg), 0);
-                } else {
+                }
+                // The communication file descriptor was activated.
+                else {
                     if ((nread = recv(i, buf, MAX_BUF_SIZE, 0)) == -1) {
                         perror("recv");
                         exit(6);
