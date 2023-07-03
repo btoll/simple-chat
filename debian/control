@@ -1,0 +1,16 @@
+Source: simple-chat
+Section: utils
+Priority: optional
+Maintainer: Benjamin Toll <ben@benjamintoll.com>
+Build-Depends: debhelper-compat (= 13), gcc
+Standards-Version: 4.5.1
+Homepage: https://benjamintoll.com
+#Vcs-Browser: https://salsa.debian.org/debian/asbits
+#Vcs-Git: https://salsa.debian.org/debian/asbits.git
+Rules-Requires-Root: no
+
+Package: simple-chat
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Description: Here be a simple chat server!
+ Make new friends and enemies.
