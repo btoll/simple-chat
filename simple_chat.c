@@ -153,7 +153,7 @@ int main(int argc, char **argv) {
                         exit(6);
                     }
 
-                    // Don't send to either the server or the to fd that wrote the message.
+                    // Don't send to either the server or the fd that wrote the message.
                     for (j = 0; j <= maxfd; ++j) {
                         if (j > sock && j != sock && j != i) {
                             // Get the sender's nickname.

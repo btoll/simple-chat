@@ -6,11 +6,11 @@ Big thanks to [Beej's Guide to Networking Programming] for help and inspiration.
 
 `make build`
 
-Only tested on Linux.  It uses the `select` API, so it *should* be portable :)
+Only tested on Linux.  It uses the [`select` API], so it *should* be portable :)
 
 ## Examples
 
-Start the server and connect via `telnet`. By default it binds to port 3333, but this can be changed by specifying a different port number.
+Start the server and connect via `telnet` or [`netcat`].  By default it binds to port 3333, but this can be changed by specifying a different port number.
 
 Start the server:
 
@@ -26,6 +26,12 @@ Connect a client:
 telnet 127.0.0.1 1992
 ```
 
+Or:
+
+```
+nc 127.0.0.1 1992
+```
+
 ## License
 
 [GPLv3](COPYING)
@@ -35,4 +41,6 @@ telnet 127.0.0.1 1992
 Benjamin Toll
 
 [Beej's Guide to Networking Programming]: https://beej.us/guide/bgnet/
+[`select` API]: https://www.man7.org/linux/man-pages/man2/select.2.html
+[`netcat`]: https://www.man7.org/linux/man-pages/man1/ncat.1.html
 
