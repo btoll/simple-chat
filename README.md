@@ -4,6 +4,10 @@ Big thanks to [Beej's Guide to Networking Programming] for help and inspiration.
 
 In particular, see his [section on the `select` system call and example code].
 
+> Why use `select`, you may be thinking to yourself?  After all, it only supports a limited number of connections (1024).
+>
+> Well, I don't think I even know that many people in the whole, wide world.  It's safe to say that even that limited number won't be on `simple-chat` all at the same time.
+
 ## Installation
 
 `make build`
