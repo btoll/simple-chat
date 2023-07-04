@@ -20,6 +20,8 @@ int main(int argc, char **argv) {
 
     char fd_s[8];
 
+    // fd_set is a struct that represents a set of file descriptors.
+    // The max number is the value of the FD_SETSIZE macro (1024).
     fd_set master, readfds;
     socklen_t sin_size;
 
@@ -78,17 +80,51 @@ int main(int argc, char **argv) {
     }
 
     fprintf(stderr, "Simple chat server started on port %s...\n", port);
-    fprintf(stderr, "Clients can connect using telnet, i.e.,\t`telnet 127.0.0.1 %s`\n", port);
+    fprintf(stderr, "Clients can connect using telnet or netcat, i.e., `telnet|nc 127.0.0.1 %s`\n", port);
 
     maxfd = sock;
+    // This macro removes / clears all the file descriptors from the set.  It
+    // should be employed as the first step.
     FD_ZERO(&master);
     FD_ZERO(&readfds);
+    // This macro adds a fd to a set.  If the fd is already preset, it's a no-op.
     FD_SET(sock, &master);
 
     for (;;) {
         readfds = master;
 
         // This blocks until a new client request or new data request is made.
+        //
+        // The first argument to select() is nfds, which should be set to the
+        // highest-number fd in any of the three sets plus one.
+        //
+        // Next, the select() API defines three sets:
+        //      1. readfds
+        //          - watched to see if they're ready for reading
+        //          - after select() has returned, readfds will be
+        //            cleared of all fds except for those that are
+        //            ready for reading
+        //      2. writefds
+        //          - watched to see if they're ready for writing
+        //          - after select() has returned, writefds will be
+        //            cleared of all fds except for those that are
+        //            ready for writing
+        //      3. exceptfds
+        //          - watched for "exceptional conditions"
+        //          - after select() has returned, exceptfds will be
+        //            cleared of all fds except for those for which
+        //            an exceptional condition has occurred
+        // NULLing any of them restricts their use.  So, here we're only allowing
+        // for readfds.
+        //
+        // Last, the timeout argument is a timeval structure.  NULL means
+        // that select() will block indefinitely waiting for a fd to become
+        // ready.  See the man page for more information.
+        //
+        // On success, select() returns the number of file descriptors contained
+        // in the three returned descriptor sets (that is, the total number of bits
+        // that are set in readfds, writefds, exceptfds).  The return value may be
+        // zero if the timeout expired before any file descriptors became ready.
         if ((r = select(maxfd + 1, &readfds, NULL, NULL, NULL)) == -1) {
             perror("select");
             exit(4);
@@ -101,6 +137,11 @@ int main(int argc, char **argv) {
         // If the master socket file descriptor is set, then a new request has been
         // made.  Recall that the kernel would redirect new requests to the master
         // socket file descriptor.
+        //
+        // This macro is used to test if the a fd is still present in a set (non-zero
+        // if it's still present).
+        // This must be checked continuously, since select() modified the contents
+        // of the sets according to rules outlined in its man page.
         if FD_ISSET(sock, &readfds) {
             sin_size = sizeof(client);
 
@@ -142,12 +183,13 @@ int main(int argc, char **argv) {
             // Add a return character so the welcome message to the user isn't on the same
             // line as the first chat message.
             char initialmsg[40];
-            sprintf(initialmsg, "Hi %s, welcome to the chat server!\n", buf);
+            sprintf(initialmsg, "Hi %s, welcome to the simple chat server!\n", buf);
             send(newfd, initialmsg, strlen(initialmsg), 0);
         } else // The communication file descriptor was activated.
         {
             for (i = 0; i <= maxfd; ++i) {
                 if FD_ISSET(i, &readfds) {
+                    // If nread is 0, the connection was closed.
                     if ((nread = recv(i, buf, MAX_BUF_SIZE, 0)) == -1) {
                         perror("recv");
                         exit(6);
@@ -173,6 +215,7 @@ int main(int argc, char **argv) {
 
                                     fprintf(stderr, "(fd %d) %s", i, msg);
 
+                                    // This macro removes the fd from the set.
                                     FD_CLR(i, &master);
                                     close(i);
 
@@ -191,6 +234,11 @@ int main(int argc, char **argv) {
                                         exit(7);
                                     }
 
+                                    // If the return value of send doesn't match the amount of data sent,
+                                    // it's up to us to send the remainder.
+                                    // However, the amount of data that is anticipated to be sent using
+                                    // this simple chat application shouldn't exceed 1KB a pop, which should
+                                    // be able to bre sent in one go.
                                     send(j, msg, nread + strlen(msg), 0);
                                 }
                             }
