@@ -1,12 +1,14 @@
-# simple_chat
+# simple-chat
 
 Big thanks to [Beej's Guide to Networking Programming] for help and inspiration.  Buy his book!
+
+In particular, see his [section on the `select` system call and example code].
 
 ## Installation
 
 `make build`
 
-Only tested on Linux.  It uses the [`select` API], so it *should* be portable :)
+Only tested on Linux.  It uses [`select`], so it *should* be portable :)
 
 ## Examples
 
@@ -41,6 +43,7 @@ nc 127.0.0.1 1992
 Benjamin Toll
 
 [Beej's Guide to Networking Programming]: https://beej.us/guide/bgnet/
-[`select` API]: https://www.man7.org/linux/man-pages/man2/select.2.html
+[section on the `select` system call and example code]: https://beej.us/guide/bgnet/html/split/slightly-advanced-techniques.html#select
+[`select`]: https://www.man7.org/linux/man-pages/man2/select.2.html
 [`netcat`]: https://www.man7.org/linux/man-pages/man1/ncat.1.html
 
