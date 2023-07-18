@@ -1,21 +1,26 @@
 CC      	= gcc
 WARN    	= -W -Wall
-SIMPLE_CHAT	= simple_chat.c
-TARGET		= simple-chat
-PREFIX		= /usr
+PROGRAM		= simple-chat
+prefix		= /usr
 
-.PHONY: build clean install
+.PHONY: build clean distclean install uninstall
 
-$(TARGET): $(SIMPLE_CHAT)
-	$(CC) $(WARN) -o $(TARGET) $(SIMPLE_CHAT)
+all: build
 
-build: $(TARGET)
+build: $(PROGRAM)
+
+$(PROGRAM): simple_chat.c
+	$(CC) $(WARN) -o $(PROGRAM) simple_chat.c
 
 clean:
-	rm -f $(TARGET) *.o
+	rm -f $(PROGRAM) *.o
+
+distclean: clean
 
 # https://www.gnu.org/software/make/manual/html_node/DESTDIR.html
 install:
-	mkdir -p $(DESTDIR)$(PREFIX)/bin
-	install -m 0755 $(TARGET) $(DESTDIR)$(PREFIX)/bin/
+	install -D -m 0755 $(PROGRAM) $(DESTDIR)$(prefix)/bin/$(PROGRAM)
+
+uninstall:
+	-rm -f $(DESTDIR)$(prefix)/bin/$(PROGRAM)
 
